@@ -12,8 +12,10 @@ from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObj
 
 class Stream(QObject):
     newText = Signal(str)
+    _stream = sys.stdout
 
     def write(self, text):
+        self._stream.write(str(text))
         self.newText.emit(str(text))
 
 
@@ -123,7 +125,8 @@ class Window(QMainWindow):
         self.fields = [field(self.pola, self, self.grid_size)]
         self.fields.append(field(self.pola, self, self.grid_size))
 
-        #sys.stdout = Stream(newText=self.onUpdateText)
+        sys.stdout = Stream()
+        sys.stdout.newText.connect(self.onUpdateText)
 
         self.show()
 
@@ -718,18 +721,17 @@ class Window(QMainWindow):
         # self.text_box.setAlignment(Qt.AlignVCenter | Qt.AlignCenter)
         # self.text_box.insertPlainText(str(sys.stdout))
 
-
         # self.text_box.setStyleSheet("color: white;")
         # self.text_box.insertPlainText(tekst[4])
         # self.text_box.setStyleSheet("color: yellow;")
         print()
 
     def onUpdateText(self, text):
-        cursor = self.process.textCursor()
+        cursor = self.text_box.textCursor()
         cursor.movePosition(QTextCursor.End)
         cursor.insertText(text)
-        self.process.setTextCursor(cursor)
-        self.process.ensureCursorVisible()
+        self.text_box.setTextCursor(cursor)
+        self.text_box.ensureCursorVisible()
 
     def __del__(self):
         sys.stdout = sys.__stdout__

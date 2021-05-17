@@ -10,15 +10,6 @@ from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor
 from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal
 
 
-class Stream(QObject):
-    newText = Signal(str)
-    _stream = sys.stdout
-
-    def write(self, text):
-        self._stream.write(str(text))
-        self.newText.emit(str(text))
-
-
 # klasa majaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
 class plansza():
     count = 0
@@ -104,7 +95,7 @@ class Window(QMainWindow):
         self.buttonlg.clicked.connect(self.lewo_g)
 
         self.text_box = QTextEdit(self)
-        self.text_box.setGeometry(130,self.wysokosc_sceny*1.02, 150, 150)
+        self.text_box.setGeometry(130,self.wysokosc_sceny*1.02, 250, 150)
         self.text_box.setReadOnly(True)
 
         self._createActions()
@@ -126,7 +117,7 @@ class Window(QMainWindow):
         self.fields.append(field(self.pola, self, self.grid_size))
 
         sys.stdout = Stream()
-        sys.stdout.newText.connect(self.onUpdateText)
+        sys.stdout.box.connect(self.onUpdateText)
 
         self.show()
 
@@ -209,7 +200,7 @@ class Window(QMainWindow):
         self.buttonl.move(5, self.wysokosc_sceny * 1.02 + 50)
         self.buttonlg.move(5, self.wysokosc_sceny * 1.02)
 
-        self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 150, 150)
+        self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 250, 150)
 
         self.scene.clear()
         if self.grid_size == 3:
@@ -310,8 +301,6 @@ class Window(QMainWindow):
             if len(fi) > 0:
                 self.fields.clear()
                 self.fields = fi
-        for i in range(len(self.fields)):
-            print(self.fields[i].nmb),
 
         sort_y = self.sort_y()
         for i in range(len(sort_y)):
@@ -353,8 +342,6 @@ class Window(QMainWindow):
             if len(fi) > 0:
                 self.fields.clear()
                 self.fields = fi
-        for i in range(len(self.fields)):
-            print(self.fields[i].nmb),
 
         sort_x = self.sort_x_re()
         for i in range(len(sort_x)):
@@ -367,9 +354,6 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        # print(free_fields(self.pola))
-        # print(len(self.fields), len(not_fields(self.pola)))
-
 
     def prawo_d(self):
         sort_y = self.sort_y_re()
@@ -415,8 +399,6 @@ class Window(QMainWindow):
             if len(fi) > 0:
                 self.fields.clear()
                 self.fields = fi
-        for i in range(len(self.fields)):
-            print(self.fields[i].nmb),
 
         sort_y = self.sort_y_re()
         for i in range(len(sort_y)):
@@ -475,8 +457,6 @@ class Window(QMainWindow):
             if len(fi) > 0:
                 self.fields.clear()
                 self.fields = fi
-        for i in range(len(self.fields)):
-            print(self.fields[i].nmb),
 
         sort_y = self.sort_y_re()
         for i in range(len(sort_y)):
@@ -501,7 +481,6 @@ class Window(QMainWindow):
         dele = []
         for i in range(len(sort_x)):
             for j in range(len(self.fields)):
-                print(self.fields[sort_x[i][1]].nmb[0], self.fields[sort_x[i][1]].nmb[1], self.fields[j].nmb[0], self.fields[j].nmb[1])
                 if sort_x[i][1] != j and self.fields[sort_x[i][1]].nmb[0] == self.fields[j].nmb[0] and self.fields[sort_x[i][1]].nmb[1] == \
                         self.fields[j].nmb[1] - 1 and self.fields[sort_x[i][1]].value == self.fields[j].value and sort_x[i][1] not in dele:
                     self.fields[sort_x[i][1]].value = self.fields[sort_x[i][1]].value * 2
@@ -521,8 +500,6 @@ class Window(QMainWindow):
             if len(fi) > 0:
                 self.fields.clear()
                 self.fields = fi
-        for i in range(len(self.fields)):
-            print(self.fields[i].nmb),
 
         sort_x = self.sort_x()
         for i in range(len(sort_x)):
@@ -535,8 +512,6 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        # print(free_fields(self.pola))
-        # print(len(self.fields), len(not_fields(self.pola)))
 
     def lewo_g(self):
         sort_y = self.sort_y()
@@ -547,8 +522,7 @@ class Window(QMainWindow):
                 zm = True
 
         dele = []
-        # for i in range(len(self.fields)):
-        #     print(self.fields[i].nmb),
+
         for i in range(len(sort_y)):
             for j in range(len(self.fields)):
                 if sort_y[i][1] != j:
@@ -585,8 +559,6 @@ class Window(QMainWindow):
             if len(fi) > 0:
                 self.fields.clear()
                 self.fields = fi
-        # for i in range(len(self.fields)):
-        #     print(self.fields[i].nmb),
 
         sort_y = self.sort_y()
         for i in range(len(sort_y)):
@@ -683,52 +655,41 @@ class Window(QMainWindow):
     def wypisz(self):
         os.system("")
         self.text_box.setPlainText("")
-        tekst = ""
-        kolory = ["\033[0m", "\033[95m", "\033[94m", "\033[93m", "\033[92m", "\033[91m", "\033[90m", "\033[89m", "\033[88m", "\033[87m", "\033[86m"]
+        kolory = ["\033[0m", "\033[95m"]
         for i in range(self.grid_size * 2 - 1):
             x = 0
             if i < self.grid_size - 1:
-                x = self.grid_size - i - 1
+                x = self.grid_size - i - 1 + (self.var - 2*(i+1))
             elif i >= self.grid_size:
-                x = i - self.grid_size + 1
+                x = i - self.grid_size + 1 + (2*(i) - self.var)
+            x = int(x)
             m = ' '
             print()
             for j in range(len(self.pola[i])):
                 if self.pola[i][j].zajety == False:
-                    if j == 0:
-                        print((x+1) * m + str(0), end=" ")
-                        tekst = tekst + str(0)
+                    if j == 0 and i == self.grid_size-1:
+                        print(f'{str(0):<5}', end=" ")
+                    elif j == 0:
+                        print(x*m, f'{str(0):<5}', end=" ")
                     else:
-                        print(str(0), end=" ")
-                        tekst = tekst + " " + str(0)
-                        if j == len(self.pola[i]) - 1:
-                            tekst = tekst + "\n"
+                        print(f'{str(0):<5}', end=" ")
                 elif self.pola[i][j].zajety == True:
                     for z in range(len(self.fields)):
                         if self.fields[z].nmb[0] == i and self.fields[z].nmb[1] == j:
                             p = self.fields[z].value
-                            va = int(math.log(p, 2))
-                            col = kolory[va]
-                    if j == 0:
-                        print(col, (x) * m + str(p), kolory[0], end="")
-                        tekst = tekst + str(p)
+                    if j == 0 and i == self.grid_size-1:
+                        print(kolory[1] + f'{str(p):<5}', kolory[0], end="")
+                    elif j == 0:
+                        print(x*m, kolory[1] + f'{str(p):<5}', kolory[0], end="")
                     else:
-                        print(col + str(p), kolory[0], end="")
-                        tekst = tekst + " " + str(p)
-                        if j == len(self.pola[i]) - 1:
-                            tekst = tekst + "\n"
-        # self.text_box.setAcceptRichText(True)
-        # self.text_box.setAlignment(Qt.AlignVCenter | Qt.AlignCenter)
-        # self.text_box.insertPlainText(str(sys.stdout))
-
-        # self.text_box.setStyleSheet("color: white;")
-        # self.text_box.insertPlainText(tekst[4])
-        # self.text_box.setStyleSheet("color: yellow;")
+                        print(kolory[1] + f'{str(p):<5}', kolory[0], end="")
         print()
 
     def onUpdateText(self, text):
         cursor = self.text_box.textCursor()
         cursor.movePosition(QTextCursor.End)
+        text = text.replace("\033[95m", "")
+        text = text.replace("\033[0m", "")
         cursor.insertText(text)
         self.text_box.setTextCursor(cursor)
         self.text_box.ensureCursorVisible()
@@ -736,6 +697,17 @@ class Window(QMainWindow):
     def __del__(self):
         sys.stdout = sys.__stdout__
 
+
+class Stream(QObject):
+    box = Signal(str)
+    konsola = sys.stdout
+
+    def write(self, text):
+        self.konsola.write(str(text))
+        self.box.emit(str(text))
+
+    def flush(self):
+        pass
 
 
 # klasa do klockow
@@ -951,15 +923,6 @@ def free_fields(pola):
     return free
 
 
-def not_fields(pola):
-    free = []
-    for i in range(len(pola)):
-        for j in range(len(pola[i])):
-            if pola[i][j].zajety == True:
-                free.append([i, j])
-    return free
-
-
 def main():
     app = QApplication(sys.argv)
     window = Window(3)
@@ -968,86 +931,3 @@ def main():
 
 
 main()
-
-# import PySide2 as ps
-# import random
-#
-#
-# class pole():
-#     def __init__(self, zajeta, agent):
-#         self.zajeta = zajeta
-#         self.agent = agent
-#
-#
-# class agent():
-#     def __init__(self, value):
-#         self.value = value
-#
-#
-# def field_number(grid_size):
-#     fld_nmb = 0
-#     var = 2 * grid_size - 1
-#     for i in range(grid_size):
-#         fld_nmb = fld_nmb + grid_size + i
-#     fld_nmb = fld_nmb * 2 - var
-#     return fld_nmb
-#
-#
-# def initiate_fields(grid_size, agents):
-#     fields = []
-#     var = 2 * grid_size - 1
-#     zmienna = 0
-#     z = 0
-#     for i in range(var):
-#         lista = []
-#         for j in range(grid_size+zmienna):
-#             lista.append(pole(False, z))
-#         fields.append(lista)
-#         if (i < var/2-1):
-#             zmienna += 1
-#         else:
-#             zmienna = zmienna - 1
-#         z += z
-#     return fields
-#
-#
-#
-# def initiate_agents(fld_nmb):
-#     agents = []
-#     for i in range(fld_nmb):
-#         agents.append(agent(0))
-#     for i in range(2):
-#         number = random.randint(0, fld_nmb-1)
-#         agents[number].value = 2
-#     return agents
-#
-#
-# def printing(fields, agents, grid_size):
-#     var = 2 * grid_size - 1
-#     zmienna = 0
-#     z = 0
-#     for i in range(var):
-#         for j in range(grid_size + zmienna):
-#             which = fields[i][j].agent
-#             print(agents[which].value),
-#         if (i < var / 2 - 1):
-#             zmienna += 1
-#         else:
-#             zmienna = zmienna - 1
-#         z += z
-#
-#
-# def main():
-#     grid_size = 3
-#
-#     fld_nmb = field_number(grid_size)
-#
-#     agents = initiate_agents(fld_nmb)
-#     fields = initiate_fields(grid_size, agents)
-#
-#     printing(fields, agents, grid_size)
-#
-#
-#
-#
-# main()

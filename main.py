@@ -6,7 +6,7 @@ import copy
 import random
 import os
 from PySide2.QtWidgets import *
-from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor
+from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont
 from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal
 
 
@@ -125,10 +125,11 @@ class Window(QMainWindow):
         menuBar = self.menuBar()            # stworzenie paska menu
 
         editMenu = menuBar.addMenu("&Opcje")                        # dodanie "opcji" do paska menu
-        findMenu = editMenu.addMenu("Zmiana rozmiaru planszy")
-        findMenu.addAction(self.trzy)
-        findMenu.addAction(self.cztery)
-        findMenu.addAction(self.piec)
+        #findMenu = editMenu.addMenu("Zmiana rozmiaru planszy")
+        editMenu.addAction(self.dialog)
+        editMenu.addAction(self.adres)
+        editMenu.addAction(self.port)
+
 
         nowaMenu = menuBar.addAction(self.nowa)
 
@@ -145,9 +146,9 @@ class Window(QMainWindow):
         }""")
 
     def _createActions(self):
-        self.trzy = QAction("&3x3x3", self)
-        self.cztery = QAction("&4x4x4", self)
-        self.piec = QAction("&5x5x5", self)
+        self.dialog = QAction("Wybor rozmiaru planszy", self)
+        self.adres = QAction("Adres IP")
+        self.port = QAction("Port Połącznia")
 
         self.nowa = QAction("Nowa gra", self)
 
@@ -160,26 +161,44 @@ class Window(QMainWindow):
         self.wyjdz = QAction("&Exit", self)
 
     def _connectActions(self):
-        self.trzy.triggered.connect(self.trzyy)
-        self.cztery.triggered.connect(self.czteryy)
-        self.piec.triggered.connect(self.piecc)
+        self.dialog.triggered.connect(self.dialogg)
 
         self.nowa.triggered.connect(self.nowaa)
 
         self.wyjdz.triggered.connect(self.wyjdzz)
 
+    def dialogg(self):
+        d = QDialog()
+        d.setWindowTitle("Wybierz rozmiar")
+        d.setGeometry(700,400, 250, 100)
+
+        b4 = QPushButton("Zamknij", d)
+        b4.move(150, 40)
+        b4.clicked.connect(d.close)
+
+        b1 = QPushButton("3x3x3", d)
+        b1.setFont(QFont('Arial', 10))
+        b1.move(50, 10)
+        b1.clicked.connect(self.trzyy)
+
+        b2 = QPushButton("4x4x4", d)
+        b2.setFont(QFont('Arial', 10))
+        b2.move(50, 40)
+        b2.clicked.connect(self.czteryy)
+
+        b3 = QPushButton("5x5x5", d)
+        b3.move(50, 70)
+        b3.setFont(QFont('Arial', 10))
+        b3.clicked.connect(self.piecc)
+
+        d.setWindowModality(Qt.ApplicationModal)
+        d.exec_()
+
     def nowaa(self):
         self.zmien()
 
     def wyjdzz(self):
-        d = QDialog()
-        b1 = QPushButton("ok", d)
-        b1.move(50, 50)
-        d.setWindowTitle("Dialog")
-        d.setWindowModality(Qt.ApplicationModal)
-        d.exec_()
-
-        #exit()
+        exit()
 
     def zmien(self):
         self.var = 2 * self.grid_size - 1
@@ -247,13 +266,13 @@ class Window(QMainWindow):
             if event.button() == Qt.LeftButton:
                 x = event.x()
                 y = event.y()
-                if x> self.iks and y > self.igr + 30:
+                if x> self.iks and y > self.igr + 20:
                     self.prawo_d()
-                elif x > self.iks and y < self.igr - 30:
+                elif x > self.iks and y < self.igr - 20:
                     self.prawo_g()
-                elif x < self.iks and y > self.igr + 30:
+                elif x < self.iks and y > self.igr + 20:
                     self.lewo_d()
-                elif x < self.iks and y < self.igr - 30:
+                elif x < self.iks and y < self.igr - 20:
                     self.lewo_g()
                 elif x < self.iks:
                     self.lewo()

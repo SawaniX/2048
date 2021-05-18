@@ -6,8 +6,8 @@ import copy
 import random
 import os
 from PySide2.QtWidgets import *
-from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont
-from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal
+from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont, QPixmap
+from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal, QPoint
 
 
 # klasa majaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
@@ -729,6 +729,52 @@ class Stream(QObject):
         pass
 
 
+class kloc(QGraphicsItem):
+    def __init__(self, pola, window, grid_size, parent=None):
+        super(kloc, self).__init__(parent)
+        self.pola = pola
+        self.grid_size = grid_size
+        self.window = window
+        self.value = 2
+        self.nmb = self.rand_field()
+        #self.fld, self.txt = self.narysuj_klocek()
+
+    def hexagon(self):
+        n = 6
+        r = 25
+        s = 0
+        w = 360 / n
+        #greenBrush = QBrush(Qt.green)
+        polygon = QPolygonF()
+        wsp_x = []
+        wsp_y = []
+        for i in range(n):  # add the points of polygon
+            t = w * i + s
+            x = (r + 3) * math.cos(math.radians(t) + math.radians(30))
+            y = (r + 0.8) * math.sin(math.radians(t) + math.radians(30))
+            x = x + self.pola[self.nmb[0]][self.nmb[1]].srodek_x
+            y = y + self.pola[self.nmb[0]][self.nmb[1]].srodek_y
+            wsp_x.append(x)
+            wsp_y.append(y)
+            polygon.append(QPointF(x, y))
+        return polygon
+
+    def boundingRect(self):
+        return QRectF(0, 0, 2*25*2, 1.7*2*25)
+
+    def paint(self, painter, option, widget):
+        painter.setBrush(QBrush(Qt.green))
+        painter.setPen(QPen(Qt.black, 3, Qt.SolidLine))
+        painter.drawPolygon(self.hexagon())
+
+    def rand_field(self):
+        free = free_fields(self.pola)
+        leng = len(free)
+        ran = random.randint(0, leng-1)
+        row, col = free[ran]
+        self.pola[row][col].zajety = True
+        return [row, col]
+
 # klasa do klockow
 class field(QGraphicsItem):
     def __init__(self, pola, window, grid_size):
@@ -749,29 +795,35 @@ class field(QGraphicsItem):
         return [row, col]
 
     def narysuj_klocek(self):
-        n = 6
-        r = 25
-        s = 0
-        w = 360 / n
-        greenBrush = QBrush(Qt.green)
-        polygon = QPolygonF()
-        wsp_x = []
-        wsp_y = []
-        for i in range(n):  # add the points of polygon
-            t = w * i + s
-            x = (r + 3) * math.cos(math.radians(t) + math.radians(30))
-            y = (r + 0.8) * math.sin(math.radians(t) + math.radians(30))
-            x = x + self.pola[self.nmb[0]][self.nmb[1]].srodek_x
-            y = y + self.pola[self.nmb[0]][self.nmb[1]].srodek_y
-            wsp_x.append(x)
-            wsp_y.append(y)
-            polygon.append(QPointF(x, y))
-        xd = QGraphicsPolygonItem(polygon)
-        xd.setBrush(greenBrush)
-        txt = QGraphicsTextItem(str(self.value), xd)
-        txt.setPos(self.pola[self.nmb[0]][self.nmb[1]].srodek_x-6, self.pola[self.nmb[0]][self.nmb[1]].srodek_y-9)
-        self.window.add_pol(xd)
-        return xd, txt
+        # n = 6
+        # r = 25
+        # s = 0
+        # w = 360 / n
+        # greenBrush = QBrush(Qt.green)
+        # polygon = QPolygonF()
+        # wsp_x = []
+        # wsp_y = []
+        # for i in range(n):  # add the points of polygon
+        #     t = w * i + s
+        #     x = (r + 3) * math.cos(math.radians(t) + math.radians(30))
+        #     y = (r + 0.8) * math.sin(math.radians(t) + math.radians(30))
+        #     x = x + self.pola[self.nmb[0]][self.nmb[1]].srodek_x
+        #     y = y + self.pola[self.nmb[0]][self.nmb[1]].srodek_y
+        #     wsp_x.append(x)
+        #     wsp_y.append(y)
+        #     polygon.append(QPointF(x, y))
+        # xd = QGraphicsPolygonItem(polygon)
+        # xd.setBrush(greenBrush)
+
+
+        #txt = QGraphicsTextItem(str(self.value), xd)
+        #txt.setPos(self.pola[self.nmb[0]][self.nmb[1]].srodek_x-6, self.pola[self.nmb[0]][self.nmb[1]].srodek_y-9)
+        #self.window.add_pol(xd)
+        item = kloc(self.pola, self.window, self.grid_size)
+        txt = QGraphicsTextItem(str(self.value), item)
+        txt.setPos(self.pola[self.nmb[0]][self.nmb[1]].srodek_x - 6, self.pola[self.nmb[0]][self.nmb[1]].srodek_y - 9)
+        self.window.add_pol(item)
+        return item, txt
 
     def zmien_pozycje_pg(self):
         x_mov = (self.pola[0][1].srodek_x - self.pola[0][0].srodek_x) / 2
@@ -930,6 +982,10 @@ class field(QGraphicsItem):
 
     def upd_text(self):
         self.txt.setPlainText(str(self.value))
+        if self.value == 16:
+            self.txt.moveBy(-4, 0)
+        elif self.value == 128:
+            self.txt.moveBy(-2, 0)
 
 
 # zwraca indeksy wolnych pol

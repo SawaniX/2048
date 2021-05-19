@@ -11,7 +11,7 @@ from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont,
 from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal, QStringListModel
 
 
-# klasa majaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
+# klasa posiadajaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
 class plansza():
     count = 0
     def __init__(self, x0, x1, x2, x3, x4, x5, y0, y1, y2, y3, y4, y5, kolumna, nr_w_kol):
@@ -40,59 +40,56 @@ class plansza():
 class Window(QMainWindow):
     def __init__(self, grid_size):
         super().__init__()
-        self.grid_size = grid_size
-        self.var = 2 * self.grid_size - 1
+        self.grid_size = grid_size                  # rozmiar planszy
+        self.var = 2 * self.grid_size - 1               # ilosc kolumn planszy
         self.pola = []
         self.pola2 = []
         self.il_pol = 0
         self.il_pol2 = 0
         self.iks = 0
         self.igr = 0
-        self.wynik = 0
+        self.wynik = 0                      # aktualny wynik gracza
         self.szerokosc_sceny = self.var * ((85.98076211353315 + math.sqrt(3) / 2 * 60) - (34.01923788646684 + math.sqrt(3) / 2 * 60))
         self.wysokosc_sceny = self.var * ((115.98076211353315 + math.sqrt(3) / 4 + 43) - (60 + math.sqrt(3) / 4 + 43))
 
         self.setWindowTitle("Hexagonal 2048, enjoy!")
 
-        self.buttonpg = QPushButton(self)
+        self.buttonpg = QPushButton(self)           # stworzenie przyciskow do sterowania agentami
         self.buttonp = QPushButton(self)
         self.buttonpd = QPushButton(self)
         self.buttonld = QPushButton(self)
         self.buttonl = QPushButton(self)
         self.buttonlg = QPushButton(self)
 
-        self.text_box = QTextEdit(self)
+        self.text_box = QTextEdit(self)             # stworzenie textboxa
 
-        self.label1 = QLabel(self)
+        self.label1 = QLabel(self)                  # stworzenie labeli do wypisywania aktualnych wynikow
         self.label2 = QLabel(self)
         self.label3 = QLabel(self)
         self.label4 = QLabel(self)
 
-        self._createActions()
+        self._createActions()               # stworzenie menuBar i jego akcji
         self._connectActions()
         self._createMenuBar()
 
-        self.scene = QGraphicsScene(self)
+        self.scene = QGraphicsScene(self)           # scena gracza nr1
 
-        self.scene2 = QGraphicsScene(self)
+        self.scene2 = QGraphicsScene(self)              # scena gracza nr2
 
-        self.create_ui()
+        self.create_ui()                    # stworzenie siatek na obu scenach
 
         self.view = QGraphicsView(self.scene, self)
 
         self.view2 = QGraphicsView(self.scene2, self)
 
-        self.properties()
+        self.properties()               # ustawienie wlasciwosci elementow programu
 
         self.fields = [field(self.pola, self, self.grid_size)]
         self.fields.append(field(self.pola, self, self.grid_size))
 
-        sys.stdout = Stream()
-        sys.stdout.box.connect(self.onUpdateText)
-
         self.show()
 
-    def properties(self):
+    def properties(self):                           # wlasciwosci przyciskow/textboxow/sceny
         self.setGeometry(500, 200, self.szerokosc_sceny * 3, self.wysokosc_sceny + 200)
         self.setStyleSheet("background-color: #464241;")
 
@@ -140,6 +137,7 @@ class Window(QMainWindow):
 
         self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 250, 150)
         self.text_box.setReadOnly(True)
+        self.text_box.setStyleSheet("background-color: white")
 
         self.label1.setText("Punkty gracza 1:")
         self.label1.setGeometry(self.szerokosc_sceny + 40, 50, 100, 30)
@@ -168,6 +166,9 @@ class Window(QMainWindow):
         self.view2.setAlignment(Qt.AlignTop and Qt.AlignLeft)
         self.view2.setGeometry(500, 20, self.wysokosc_sceny, self.szerokosc_sceny)
 
+        sys.stdout = Stream()
+        sys.stdout.box.connect(self.onUpdateText)
+
     def _createMenuBar(self):
         menuBar = self.menuBar()            # stworzenie paska menu
 
@@ -185,13 +186,13 @@ class Window(QMainWindow):
 
         autoMenu = menuBar.addAction(self.auto)
 
-        exitMenu = menuBar.addAction(self.wyjdz)                # dodanie "wyjscia" z programu do paska menu
+        exitMenu = menuBar.addAction(self.wyjdz)
 
         menuBar.setStyleSheet("""QMenuBar {
              background-color: gray;
         }""")
 
-    def _createActions(self):
+    def _createActions(self):                       # stworzenie akcji dla przyciskow w menubox
         self.dialog = QAction("Wybor rozmiaru planszy", self)
         self.adres = QAction("Adres IP")
         self.port = QAction("Port Połącznia")
@@ -206,7 +207,7 @@ class Window(QMainWindow):
 
         self.wyjdz = QAction("&Exit", self)
 
-    def _connectActions(self):
+    def _connectActions(self):                          # obsluga akcji dla przyciskow w menubox
         self.dialog.triggered.connect(self.dialogg)
 
         self.nowa.triggered.connect(self.nowaa)
@@ -217,12 +218,12 @@ class Window(QMainWindow):
 
         self.wyjdz.triggered.connect(self.wyjdzz)
 
-    def fileDialogRead(self):
+    def fileDialogRead(self):                       # odczytywanie stanu gry
         dia = QFileDialog()
         dia.setNameFilter("XML (*.xml)");
         dia.exec();
 
-    def fileDialogSave(self):
+    def fileDialogSave(self):                       # zapisywanie stanu gry
         now = datetime.now()
         time = now.strftime("%H_%M_%S")
 
@@ -233,7 +234,7 @@ class Window(QMainWindow):
                 file.write("ELO")
                 file.close()
 
-    def dialogg(self):
+    def dialogg(self):                  # DialogBox do zmiany rozmiaru planszy
         d = QDialog()
         d.setWindowTitle("Wybierz rozmiar")
         d.setGeometry(700,400, 250, 100)
@@ -260,13 +261,13 @@ class Window(QMainWindow):
         d.setWindowModality(Qt.ApplicationModal)
         d.exec_()
 
-    def nowaa(self):
+    def nowaa(self):                            # nowa gra
         self.zmien()
 
-    def wyjdzz(self):
+    def wyjdzz(self):                           # wyjscie z programu
         exit()
 
-    def zmien(self):
+    def zmien(self):                            # zmiana rozmiaru planszy
         self.var = 2 * self.grid_size - 1
         self.pola.clear()
         self.il_pol = 0
@@ -323,23 +324,23 @@ class Window(QMainWindow):
 
         self.text_box.clear()
 
-    def trzyy(self):
+    def trzyy(self):                        # zmiana rozmiaru planszy na 3x3x3
         if self.grid_size != 3:
             self.grid_size = 3
             self.zmien()
 
-    def czteryy(self):
+    def czteryy(self):                      # zmiana rozmiaru planszy na 4x4x4
         if self.grid_size != 4:
             self.grid_size = 4
             self.zmien()
 
-    def piecc(self):
+    def piecc(self):                        # zmiana rozmiaru planszy na 5x5x5
         if self.grid_size != 5:
             self.grid_size = 5
             self.zmien()
 
 
-    def eventFilter(self, source, event):
+    def eventFilter(self, source, event):               # obsluga gestow myszy
         if event.type() == QEvent.MouseButtonPress:
             x = event.x()
             y = event.y()
@@ -365,6 +366,82 @@ class Window(QMainWindow):
 
         return super(Window, self).eventFilter(source, event)
 
+    def prawo_g(self):                  # ruch prawo gora
+        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+                         self.text_box, self.wynik)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo_g()
+        self.akt()
+
+    def prawo(self):                    # ruch prawo
+        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+                         self.text_box, self.wynik)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo()
+        self.akt()
+
+    def prawo_d(self):                  # ruch prawo dol
+        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+                         self.text_box, self.wynik)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo_d()
+        self.akt()
+
+    def lewo_d(self):                   # ruch lewo dol
+        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+                         self.text_box, self.wynik)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo_d()
+        self.akt()
+
+    def lewo(self):                     # ruch lewo
+        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+                         self.text_box, self.wynik)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo()
+        self.akt()
+
+    def lewo_g(self):                   # ruch lewo gora
+        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo_g()
+        self.akt()
+
+    def create_ui(self):            # stworzenie siatki
+        ui1 = siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
+        self.scene, self.pola, self.ilpol = ui1.stworz_plansze()
+
+        ui2 = siatka(self.grid_size, self.var, self.scene2, self.pola2, self.il_pol2)
+        self.scene2, self.pola2, self.ilpol2 = ui2.stworz_plansze()
+
+    def add_pol(self, item):                        # dodanie pola
+        self.scene.addItem(item)
+
+    def del_pol(self, item):                        # usuniecie pola
+        self.scene.removeItem(item)
+
+    def akt(self):                                  # aktualizacja wyniku gracza
+        self.label2.setText(str(self.wynik))
+
+    def onUpdateText(self, text):                   # przekierowanie konsoli na kontrolke QTextEdit
+        cursor = self.text_box.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        text = text.replace("\033[95m", "")
+        text = text.replace("\033[0m", "")
+        cursor.insertText(text)
+        self.text_box.setTextCursor(cursor)
+        self.text_box.ensureCursorVisible()
+
+    def __del__(self):
+        sys.stdout = sys.__stdout__
+
+
+class poruszanie():
+    def __init__(self, grid_size, pola, fields, scene, view, il_pol, var, text_box, wynik):
+        self.grid_size = grid_size
+        self.pola = pola
+        self.fields = fields
+        self.scene = scene
+        self.view = view
+        self.il_pol = il_pol
+        self.var = var
+        self.text_box = text_box
+        self.wynik = wynik
+
     def prawo_g(self):
         sort_y = self.sort_y()
         zm = False
@@ -382,7 +459,8 @@ class Window(QMainWindow):
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
                     elif self.fields[j].nmb[0] > self.grid_size - 1 and self.fields[sort_y[i][1]].value == self.fields[j].value and sort_y[i][1] not in dele \
@@ -390,7 +468,8 @@ class Window(QMainWindow):
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
         if len(dele) > 0:
@@ -416,6 +495,7 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
 
     def prawo(self):
         sort_x = self.sort_x_re()
@@ -431,7 +511,8 @@ class Window(QMainWindow):
                     self.fields[sort_x[i][1]].value = self.fields[sort_x[i][1]].value * 2
                     self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                     self.del_pol(self.fields[j].fld)
-                    self.fields[sort_x[i][1]].upd_text()
+                    wart = self.fields[sort_x[i][1]].upd_text()
+                    self.wynik = self.wynik + wart
                     dele.append(j)
                     zm = True
         if len(dele) > 0:
@@ -457,6 +538,7 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
 
     def prawo_d(self):
         sort_y = self.sort_y_re()
@@ -477,7 +559,8 @@ class Window(QMainWindow):
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
                     elif self.fields[j].nmb[0] < self.grid_size-1 and self.fields[sort_y[i][1]].value == self.fields[
@@ -487,7 +570,8 @@ class Window(QMainWindow):
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
 
@@ -514,6 +598,7 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
 
     def lewo_d(self):
         sort_y = self.sort_y_re()
@@ -535,7 +620,8 @@ class Window(QMainWindow):
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
                     elif self.fields[j].nmb[0] >= self.grid_size-1 and self.fields[sort_y[i][1]].value == self.fields[
@@ -545,7 +631,8 @@ class Window(QMainWindow):
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
                         print("TU2")
@@ -572,6 +659,7 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
 
     def lewo(self):
         sort_x = self.sort_x()
@@ -589,7 +677,8 @@ class Window(QMainWindow):
                     self.fields[sort_x[i][1]].value = self.fields[sort_x[i][1]].value * 2
                     self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                     self.del_pol(self.fields[j].fld)
-                    self.fields[sort_x[i][1]].upd_text()
+                    wart = self.fields[sort_x[i][1]].upd_text()
+                    self.wynik = self.wynik + wart
                     dele.append(j)
                     zm = True
         if len(dele) > 0:
@@ -615,6 +704,7 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
 
     def lewo_g(self):
         sort_y = self.sort_y()
@@ -629,25 +719,28 @@ class Window(QMainWindow):
         for i in range(len(sort_y)):
             for j in range(len(self.fields)):
                 if sort_y[i][1] != j:
-                    if self.fields[sort_y[i][1]].nmb[0] >= self.grid_size-1 and self.fields[j].nmb[
-                        0] >= self.grid_size-1 and \
+                    if self.fields[sort_y[i][1]].nmb[0] >= self.grid_size - 1 and self.fields[j].nmb[
+                        0] >= self.grid_size - 1 and \
                             self.fields[sort_y[i][1]].value == self.fields[j].value and \
                             self.fields[sort_y[i][1]].nmb[0] == self.fields[j].nmb[0] - 1 and \
                             self.fields[sort_y[i][1]].nmb[1] == self.fields[j].nmb[1] and sort_y[i][1] not in dele:
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
-                    elif self.fields[sort_y[i][1]].nmb[0] < self.grid_size - 1 and self.fields[sort_y[i][1]].value == self.fields[
-                        j].value and sort_y[i][1] not in dele \
+                    elif self.fields[sort_y[i][1]].nmb[0] < self.grid_size - 1 and self.fields[sort_y[i][1]].value == \
+                            self.fields[
+                                j].value and sort_y[i][1] not in dele \
                             and self.fields[sort_y[i][1]].nmb[0] == self.fields[j].nmb[0] - 1 and \
-                            self.fields[sort_y[i][1]].nmb[1] == self.fields[j].nmb[1]-1:
+                            self.fields[sort_y[i][1]].nmb[1] == self.fields[j].nmb[1] - 1:
                         self.fields[sort_y[i][1]].value = self.fields[sort_y[i][1]].value * 2
                         self.pola[self.fields[j].nmb[0]][self.fields[j].nmb[1]].zajety = False
                         self.del_pol(self.fields[j].fld)
-                        self.fields[sort_y[i][1]].upd_text()
+                        wart = self.fields[sort_y[i][1]].upd_text()
+                        self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
 
@@ -656,7 +749,8 @@ class Window(QMainWindow):
             for i in range(len(self.fields)):
                 rd = False
                 for j in dele:
-                    if i != j and rd == False and self.pola[self.fields[i].nmb[0]][self.fields[i].nmb[1]].zajety == True:
+                    if i != j and rd == False and self.pola[self.fields[i].nmb[0]][
+                        self.fields[i].nmb[1]].zajety == True:
                         fi.append(self.fields[i])
                         rd = True
             if len(fi) > 0:
@@ -674,14 +768,40 @@ class Window(QMainWindow):
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
 
-
-    def create_ui(self):
-        ui1 = siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
-        self.scene, self.pola, self.ilpol = ui1.stworz_plansze()
-
-        ui2 = siatka(self.grid_size, self.var, self.scene2, self.pola2, self.il_pol2)
-        self.scene2, self.pola2, self.ilpol2 = ui2.stworz_plansze()
+    def wypisz(self):
+        os.system("")
+        self.text_box.setPlainText("")
+        kolory = ["\033[0m", "\033[95m"]
+        for i in range(self.grid_size * 2 - 1):
+            x = 0
+            if i < self.grid_size - 1:
+                x = self.grid_size - i - 1 + (self.var - 2*(i+1))
+            elif i >= self.grid_size:
+                x = i - self.grid_size + 1 + (2*(i) - self.var)
+            x = int(x)
+            m = ' '
+            print()
+            for j in range(len(self.pola[i])):
+                if self.pola[i][j].zajety == False:
+                    if j == 0 and i == self.grid_size-1:
+                        print(f'{str(0):<5}', end=" ")
+                    elif j == 0:
+                        print(x*m, f'{str(0):<5}', end=" ")
+                    else:
+                        print(f'{str(0):<5}', end=" ")
+                elif self.pola[i][j].zajety == True:
+                    for z in range(len(self.fields)):
+                        if self.fields[z].nmb[0] == i and self.fields[z].nmb[1] == j:
+                            p = self.fields[z].value
+                    if j == 0 and i == self.grid_size-1:
+                        print(kolory[1] + f'{str(p):<5}', kolory[0], end="")
+                    elif j == 0:
+                        print(x*m, kolory[1] + f'{str(p):<5}', kolory[0], end="")
+                    else:
+                        print(kolory[1] + f'{str(p):<5}', kolory[0], end="")
+        print()
 
     def add_pol(self, item):
         self.scene.addItem(item)
@@ -720,55 +840,6 @@ class Window(QMainWindow):
             sort_x.append([self.pola[nr0][nr1].srodek_x, i])
         sort_x.sort(reverse=True)
         return sort_x
-
-    def wypisz(self):
-        os.system("")
-        self.text_box.setPlainText("")
-        kolory = ["\033[0m", "\033[95m"]
-        for i in range(self.grid_size * 2 - 1):
-            x = 0
-            if i < self.grid_size - 1:
-                x = self.grid_size - i - 1 + (self.var - 2*(i+1))
-            elif i >= self.grid_size:
-                x = i - self.grid_size + 1 + (2*(i) - self.var)
-            x = int(x)
-            m = ' '
-            print()
-            for j in range(len(self.pola[i])):
-                if self.pola[i][j].zajety == False:
-                    if j == 0 and i == self.grid_size-1:
-                        print(f'{str(0):<5}', end=" ")
-                    elif j == 0:
-                        print(x*m, f'{str(0):<5}', end=" ")
-                    else:
-                        print(f'{str(0):<5}', end=" ")
-                elif self.pola[i][j].zajety == True:
-                    for z in range(len(self.fields)):
-                        if self.fields[z].nmb[0] == i and self.fields[z].nmb[1] == j:
-                            p = self.fields[z].value
-                    if j == 0 and i == self.grid_size-1:
-                        print(kolory[1] + f'{str(p):<5}', kolory[0], end="")
-                    elif j == 0:
-                        print(x*m, kolory[1] + f'{str(p):<5}', kolory[0], end="")
-                    else:
-                        print(kolory[1] + f'{str(p):<5}', kolory[0], end="")
-        print()
-
-    def onUpdateText(self, text):
-        cursor = self.text_box.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        text = text.replace("\033[95m", "")
-        text = text.replace("\033[0m", "")
-        cursor.insertText(text)
-        self.text_box.setTextCursor(cursor)
-        self.text_box.ensureCursorVisible()
-
-    def __del__(self):
-        sys.stdout = sys.__stdout__
-
-    def akt(self, wyn):
-        self.wynik = self.wynik + wyn
-        self.label2.setText(str(self.wynik))
 
 
 class siatka():
@@ -1037,11 +1108,12 @@ class field(QGraphicsItem):
 
     def upd_text(self):
         self.txt.setPlainText(str(self.value))
-        self.window.akt(self.value)
+        #self.window.akt(self.value)
         if self.value == 16:
             self.txt.moveBy(-4, 0)
         elif self.value == 128:
             self.txt.moveBy(-2, 0)
+        return self.value
 
 
 # zwraca indeksy wolnych pol

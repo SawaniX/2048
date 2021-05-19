@@ -45,6 +45,7 @@ class Window(QMainWindow):
         self.pola = []
         self.pola2 = []
         self.il_pol = 0
+        self.il_pol2 = 0
         self.iks = 0
         self.igr = 0
         self.wynik = 0
@@ -76,7 +77,6 @@ class Window(QMainWindow):
         self.scene2 = QGraphicsScene(self)
 
         self.create_ui()
-        self.create_ui2()
 
         self.view = QGraphicsView(self.scene, self)
 
@@ -313,7 +313,6 @@ class Window(QMainWindow):
             self.scene2.setSceneRect(-73.257913, 56.645898, 474.361922, 410.153068)
 
         self.create_ui()
-        self.create_ui2()
 
         self.view.setGeometry(0, 20, self.wysokosc_sceny, self.szerokosc_sceny)
         self.view2.setGeometry(self.szerokosc_sceny * 3-(self.szerokosc_sceny+10), 20, self.wysokosc_sceny, self.szerokosc_sceny)
@@ -678,80 +677,11 @@ class Window(QMainWindow):
 
 
     def create_ui(self):
-        blackPen = QPen(Qt.black)
-        blackPen.setWidth(5)
+        ui1 = siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
+        self.scene, self.pola, self.ilpol = ui1.stworz_plansze()
 
-        grid_size = self.grid_size
-        var = self.var
-        x = [60, 85.98076211353315, 85.98076211353315, 60, 34.01923788646684, 34.01923788646684, 60]
-        y = [60, 72.99038105676658, 102.99038105676658, 115.98076211353315, 102.99038105676658, 72.99038105676658, 60]
-        x_cop = copy.deepcopy(x)
-        zmienna = 0
-        k = math.sqrt(3) / 4 + 43
-        for i in range(var):
-            lista = []
-            x = x_cop
-            if i != 0:
-                y = [z + k for z in y]
-            if i < var / 2 and i != 0:
-                x = [z - i*(math.sqrt(3) / 2 * 30) for z in x]
-            if i > var / 2 and i != 0 and i != var-1:
-                x = [z - (var-1-i) * (math.sqrt(3) / 2 * 30) for z in x]
-            for j in range(grid_size+zmienna):
-                if j != 0:
-                    x = [z + math.sqrt(3) / 2 * 60 for z in x]
-                self.scene.addLine(x[0], y[0], x[1], y[1], blackPen)
-                self.scene.addLine(x[1], y[1], x[2], y[2], blackPen)
-                self.scene.addLine(x[2], y[2], x[3], y[3], blackPen)
-                self.scene.addLine(x[3], y[3], x[4], y[4], blackPen)
-                self.scene.addLine(x[4], y[4], x[5], y[5], blackPen)
-                self.scene.addLine(x[5], y[5], x[0], y[0], blackPen)
-                lista.append(plansza(x[0], x[1], x[2], x[3], x[4], x[5], y[0], y[1], y[2], y[3], y[4], y[5], i, j))
-                self.il_pol += 1
-            self.pola.append(lista)
-
-            if (i < var/2-1):
-                zmienna += 1
-            else:
-                zmienna = zmienna - 1
-
-    def create_ui2(self):
-        blackPen = QPen(Qt.black)
-        blackPen.setWidth(5)
-
-        grid_size = self.grid_size
-        var = self.var
-        x = [60, 85.98076211353315, 85.98076211353315, 60, 34.01923788646684, 34.01923788646684, 60]
-        y = [60, 72.99038105676658, 102.99038105676658, 115.98076211353315, 102.99038105676658, 72.99038105676658, 60]
-        x_cop = copy.deepcopy(x)
-        zmienna = 0
-        k = math.sqrt(3) / 4 + 43
-        for i in range(var):
-            lista = []
-            x = x_cop
-            if i != 0:
-                y = [z + k for z in y]
-            if i < var / 2 and i != 0:
-                x = [z - i*(math.sqrt(3) / 2 * 30) for z in x]
-            if i > var / 2 and i != 0 and i != var-1:
-                x = [z - (var-1-i) * (math.sqrt(3) / 2 * 30) for z in x]
-            for j in range(grid_size+zmienna):
-                if j != 0:
-                    x = [z + math.sqrt(3) / 2 * 60 for z in x]
-                self.scene2.addLine(x[0], y[0], x[1], y[1], blackPen)
-                self.scene2.addLine(x[1], y[1], x[2], y[2], blackPen)
-                self.scene2.addLine(x[2], y[2], x[3], y[3], blackPen)
-                self.scene2.addLine(x[3], y[3], x[4], y[4], blackPen)
-                self.scene2.addLine(x[4], y[4], x[5], y[5], blackPen)
-                self.scene2.addLine(x[5], y[5], x[0], y[0], blackPen)
-                lista.append(plansza(x[0], x[1], x[2], x[3], x[4], x[5], y[0], y[1], y[2], y[3], y[4], y[5], i, j))
-                self.il_pol += 1
-            self.pola2.append(lista)
-
-            if (i < var/2-1):
-                zmienna += 1
-            else:
-                zmienna = zmienna - 1
+        ui2 = siatka(self.grid_size, self.var, self.scene2, self.pola2, self.il_pol2)
+        self.scene2, self.pola2, self.ilpol2 = ui2.stworz_plansze()
 
     def add_pol(self, item):
         self.scene.addItem(item)
@@ -839,6 +769,54 @@ class Window(QMainWindow):
     def akt(self, wyn):
         self.wynik = self.wynik + wyn
         self.label2.setText(str(self.wynik))
+
+
+class siatka():
+    def __init__(self, grid_size, var, scena, pola, il_pol):
+        self.grid_size = grid_size
+        self.var = var
+        self.scene = scena
+        self.pola = pola
+        self.il_pol = il_pol
+
+    def stworz_plansze(self):
+        blackPen = QPen(Qt.black)
+        blackPen.setWidth(5)
+
+        grid_size = self.grid_size
+        var = self.var
+        x = [60, 85.98076211353315, 85.98076211353315, 60, 34.01923788646684, 34.01923788646684, 60]
+        y = [60, 72.99038105676658, 102.99038105676658, 115.98076211353315, 102.99038105676658, 72.99038105676658, 60]
+        x_cop = copy.deepcopy(x)
+        zmienna = 0
+        k = math.sqrt(3) / 4 + 43
+        for i in range(var):
+            lista = []
+            x = x_cop
+            if i != 0:
+                y = [z + k for z in y]
+            if i < var / 2 and i != 0:
+                x = [z - i * (math.sqrt(3) / 2 * 30) for z in x]
+            if i > var / 2 and i != 0 and i != var - 1:
+                x = [z - (var - 1 - i) * (math.sqrt(3) / 2 * 30) for z in x]
+            for j in range(grid_size + zmienna):
+                if j != 0:
+                    x = [z + math.sqrt(3) / 2 * 60 for z in x]
+                self.scene.addLine(x[0], y[0], x[1], y[1], blackPen)
+                self.scene.addLine(x[1], y[1], x[2], y[2], blackPen)
+                self.scene.addLine(x[2], y[2], x[3], y[3], blackPen)
+                self.scene.addLine(x[3], y[3], x[4], y[4], blackPen)
+                self.scene.addLine(x[4], y[4], x[5], y[5], blackPen)
+                self.scene.addLine(x[5], y[5], x[0], y[0], blackPen)
+                lista.append(plansza(x[0], x[1], x[2], x[3], x[4], x[5], y[0], y[1], y[2], y[3], y[4], y[5], i, j))
+                self.il_pol += 1
+            self.pola.append(lista)
+
+            if (i < var / 2 - 1):
+                zmienna += 1
+            else:
+                zmienna = zmienna - 1
+        return self.scene, self.pola, self.il_pol
 
 
 class Stream(QObject):

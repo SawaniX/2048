@@ -5,9 +5,10 @@ import math
 import copy
 import random
 import os
+from datetime import datetime
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont, QPalette
-from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal
+from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal, QStringListModel
 
 
 # klasa majaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
@@ -51,87 +52,37 @@ class Window(QMainWindow):
         self.wysokosc_sceny = self.var * ((115.98076211353315 + math.sqrt(3) / 4 + 43) - (60 + math.sqrt(3) / 4 + 43))
 
         self.setWindowTitle("Hexagonal 2048, enjoy!")
-        self.setGeometry(500, 200, self.szerokosc_sceny*3, self.wysokosc_sceny+200)
-        self.setStyleSheet("background-color: #464241;")
 
         self.buttonpg = QPushButton(self)
-        self.buttonpg.setText("Prawa\n gora")
-        self.buttonpg.setFixedHeight(50)
-        self.buttonpg.setFixedWidth(50)
-        self.buttonpg.move(55, self.wysokosc_sceny * 1.02)
-        self.buttonpg.clicked.connect(self.prawo_g)
-
         self.buttonp = QPushButton(self)
-        self.buttonp.setText("Prawo")
-        self.buttonp.setFixedHeight(50)
-        self.buttonp.setFixedWidth(50)
-        self.buttonp.move(55, self.wysokosc_sceny * 1.02 + 50)
-        self.buttonp.clicked.connect(self.prawo)
-
         self.buttonpd = QPushButton(self)
-        self.buttonpd.setText("Prawy\n dol")
-        self.buttonpd.setFixedHeight(50)
-        self.buttonpd.setFixedWidth(50)
-        self.buttonpd.move(55, self.wysokosc_sceny * 1.02 + 100)
-        self.buttonpd.clicked.connect(self.prawo_d)
-
         self.buttonld = QPushButton(self)
-        self.buttonld.setText("Lewy\n dol")
-        self.buttonld.setFixedHeight(50)
-        self.buttonld.setFixedWidth(50)
-        self.buttonld.move(5, self.wysokosc_sceny * 1.02 + 100)
-        self.buttonld.clicked.connect(self.lewo_d)
-
         self.buttonl = QPushButton(self)
-        self.buttonl.setText("Lewo")
-        self.buttonl.setFixedHeight(50)
-        self.buttonl.setFixedWidth(50)
-        self.buttonl.move(5, self.wysokosc_sceny * 1.02 + 50)
-        self.buttonl.clicked.connect(self.lewo)
-
         self.buttonlg = QPushButton(self)
-        self.buttonlg.setText("Lewa\n gora")
-        self.buttonlg.setFixedHeight(50)
-        self.buttonlg.setFixedWidth(50)
-        self.buttonlg.move(5, self.wysokosc_sceny * 1.02)
-        self.buttonlg.clicked.connect(self.lewo_g)
 
         self.text_box = QTextEdit(self)
-        self.text_box.setGeometry(130,self.wysokosc_sceny*1.02, 250, 150)
-        self.text_box.setReadOnly(True)
 
         self.label1 = QLabel(self)
-        self.label1.setText("Punkty gracza 1:")
-        self.label1.setGeometry(280, 50, 100, 30)
-        self.label1.setFont(QFont('Arial', 10))
-
         self.label2 = QLabel(self)
-        self.label2.setText(str(self.wynik))
-        self.label2.setGeometry(280, 70, 100, 30)
-        self.label2.setFont(QFont('Arial', 10))
+        self.label3 = QLabel(self)
+        self.label4 = QLabel(self)
 
         self._createActions()
         self._connectActions()
         self._createMenuBar()
 
         self.scene = QGraphicsScene(self)
-        self.scene.setBackgroundBrush(QBrush(Qt.gray))
 
         self.scene2 = QGraphicsScene(self)
-        self.scene2.setBackgroundBrush(QBrush(Qt.gray))
 
         self.create_ui()
         self.create_ui2()
 
         self.view = QGraphicsView(self.scene, self)
-        self.view.setAlignment(Qt.AlignTop and Qt.AlignLeft)
-        self.view.setGeometry(0, 20, self.wysokosc_sceny, self.szerokosc_sceny)
-        self.view.setMouseTracking(True)
-        self.view.viewport().installEventFilter(self)
 
         self.view2 = QGraphicsView(self.scene2, self)
-        self.view2.setAlignment(Qt.AlignTop and Qt.AlignLeft)
-        self.view2.setGeometry(500, 20, self.wysokosc_sceny, self.szerokosc_sceny)
+
+        self.properties()
 
         self.fields = [field(self.pola, self, self.grid_size)]
         self.fields.append(field(self.pola, self, self.grid_size))
@@ -141,11 +92,86 @@ class Window(QMainWindow):
 
         self.show()
 
+    def properties(self):
+        self.setGeometry(500, 200, self.szerokosc_sceny * 3, self.wysokosc_sceny + 200)
+        self.setStyleSheet("background-color: #464241;")
+
+        self.buttonpg.setText("Prawa\n gora")
+        self.buttonpg.setFixedHeight(50)
+        self.buttonpg.setFixedWidth(50)
+        self.buttonpg.move(55, self.wysokosc_sceny * 1.02)
+        self.buttonpg.setStyleSheet("background-color: #009999")
+        self.buttonpg.clicked.connect(self.prawo_g)
+
+        self.buttonp.setText("Prawo")
+        self.buttonp.setFixedHeight(50)
+        self.buttonp.setFixedWidth(50)
+        self.buttonp.move(55, self.wysokosc_sceny * 1.02 + 50)
+        self.buttonp.setStyleSheet("background-color: #009999")
+        self.buttonp.clicked.connect(self.prawo)
+
+        self.buttonpd.setText("Prawy\n dol")
+        self.buttonpd.setFixedHeight(50)
+        self.buttonpd.setFixedWidth(50)
+        self.buttonpd.move(55, self.wysokosc_sceny * 1.02 + 100)
+        self.buttonpd.setStyleSheet("background-color: #009999")
+        self.buttonpd.clicked.connect(self.prawo_d)
+
+        self.buttonld.setText("Lewy\n dol")
+        self.buttonld.setFixedHeight(50)
+        self.buttonld.setFixedWidth(50)
+        self.buttonld.move(5, self.wysokosc_sceny * 1.02 + 100)
+        self.buttonld.setStyleSheet("background-color: #009999")
+        self.buttonld.clicked.connect(self.lewo_d)
+
+        self.buttonl.setText("Lewo")
+        self.buttonl.setFixedHeight(50)
+        self.buttonl.setFixedWidth(50)
+        self.buttonl.move(5, self.wysokosc_sceny * 1.02 + 50)
+        self.buttonl.setStyleSheet("background-color: #009999")
+        self.buttonl.clicked.connect(self.lewo)
+
+        self.buttonlg.setText("Lewa\n gora")
+        self.buttonlg.setFixedHeight(50)
+        self.buttonlg.setFixedWidth(50)
+        self.buttonlg.move(5, self.wysokosc_sceny * 1.02)
+        self.buttonlg.setStyleSheet("background-color: #009999")
+        self.buttonlg.clicked.connect(self.lewo_g)
+
+        self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 250, 150)
+        self.text_box.setReadOnly(True)
+
+        self.label1.setText("Punkty gracza 1:")
+        self.label1.setGeometry(self.szerokosc_sceny + 40, 50, 100, 30)
+        self.label1.setFont(QFont('Arial', 10))
+
+        self.label2.setText(str(self.wynik))
+        self.label2.setGeometry(self.szerokosc_sceny + 40, 80, 100, 30)
+        self.label2.setFont(QFont('Arial', 10))
+
+        self.label3.setText("Punkty gracza 1:")
+        self.label3.setGeometry(self.szerokosc_sceny + 40, 120, 100, 30)
+        self.label3.setFont(QFont('Arial', 10))
+
+        self.label4.setText("0")
+        self.label4.setGeometry(self.szerokosc_sceny + 40, 150, 100, 30)
+        self.label4.setFont(QFont('Arial', 10))
+
+        self.scene.setBackgroundBrush(QBrush(Qt.gray))
+        self.scene2.setBackgroundBrush(QBrush(Qt.gray))
+
+        self.view.setAlignment(Qt.AlignTop and Qt.AlignLeft)
+        self.view.setGeometry(0, 20, self.wysokosc_sceny, self.szerokosc_sceny)
+        self.view.setMouseTracking(True)
+        self.view.viewport().installEventFilter(self)
+
+        self.view2.setAlignment(Qt.AlignTop and Qt.AlignLeft)
+        self.view2.setGeometry(500, 20, self.wysokosc_sceny, self.szerokosc_sceny)
+
     def _createMenuBar(self):
         menuBar = self.menuBar()            # stworzenie paska menu
 
         editMenu = menuBar.addMenu("&Opcje")                        # dodanie "opcji" do paska menu
-        #findMenu = editMenu.addMenu("Zmiana rozmiaru planszy")
         editMenu.addAction(self.dialog)
         editMenu.addAction(self.adres)
         editMenu.addAction(self.port)
@@ -185,7 +211,27 @@ class Window(QMainWindow):
 
         self.nowa.triggered.connect(self.nowaa)
 
+        self.zapisz.triggered.connect(self.fileDialogSave)
+
+        self.emuluj.triggered.connect(self.fileDialogRead)
+
         self.wyjdz.triggered.connect(self.wyjdzz)
+
+    def fileDialogRead(self):
+        dia = QFileDialog()
+        dia.setNameFilter("XML (*.xml)");
+        dia.exec();
+
+    def fileDialogSave(self):
+        now = datetime.now()
+        time = now.strftime("%H_%M_%S")
+
+        dia, _ = QFileDialog.getSaveFileName(self, "Save file", "2048_Save_"+time, ".xml")
+
+        if dia:
+            with open(dia, "w") as file:
+                file.write("ELO")
+                file.close()
 
     def dialogg(self):
         d = QDialog()
@@ -224,6 +270,7 @@ class Window(QMainWindow):
         self.var = 2 * self.grid_size - 1
         self.pola.clear()
         self.il_pol = 0
+        self.wynik = 0
         self.iks = 0
         self.igr = 0
         self.szerokosc_sceny = self.var * (
@@ -242,7 +289,12 @@ class Window(QMainWindow):
         self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 250, 150)
 
         self.label1.setGeometry(self.szerokosc_sceny+40, 50, 100, 30)
-        self.label2.setGeometry(self.szerokosc_sceny+40, 70, 100, 30)
+        self.label2.setGeometry(self.szerokosc_sceny+40, 80, 100, 30)
+        self.label3.setGeometry(self.szerokosc_sceny + 40, 120, 100, 30)
+        self.label4.setGeometry(self.szerokosc_sceny + 40, 150, 100, 30)
+
+        self.label2.setText("0")
+        self.label4.setText("0")
 
         self.scene.clear()
         if self.grid_size == 3:
@@ -706,9 +758,6 @@ class Window(QMainWindow):
 
     def del_pol(self, item):
         self.scene.removeItem(item)
-
-    def ret_pola(self):
-        return self.pola
 
     def sort_y(self):
         sort_y = []

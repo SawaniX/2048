@@ -1,18 +1,16 @@
 # Tomasz Walburg 176050, AiR KSD
+# zrobione wszystko oprocz dziedziczenia po QGraphicsItem, wyswietlenia grafiki z zasobow qrc oraz zapisu konfiguracji
+# w pliku .json
 
 import sys
 import math
-import copy
 import random
 import os
 import copy
-import socket
-import threading
 import time
-from datetime import datetime
 from PySide2.QtWidgets import *
-from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont, QPalette, QImage, QColor
-from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal, QStringListModel
+from PySide2.QtGui import QPen, QPolygonF, QBrush, QTextCursor, QFont
+from PySide2.QtCore import Qt, QPointF, QEvent, QObject, Signal
 import xml.etree.ElementTree as ET
 
 
@@ -94,13 +92,11 @@ class Window(QMainWindow):
         self.properties()               # ustawienie wlasciwosci elementow programu
 
         self.fields = [Field(self.pola, self, self.grid_size, [-1, -1], -1)]
-        self.dodane.append(self.fields[-1].nmb)
+        self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
         self.wartosc.append(self.fields[-1].value)
         self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
-        self.dodane.append(self.fields[-1].nmb)
+        self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
         self.wartosc.append(self.fields[-1].value)
-
-        print("START: " + str(self.dodane))
 
         self.show()
 
@@ -192,12 +188,13 @@ class Window(QMainWindow):
         editMenu.addAction(self.adres)
         editMenu.addAction(self.port)
 
-
         nowaMenu = menuBar.addAction(self.nowa)
 
         zapiszMenu = menuBar.addAction(self.zapisz)
 
-        emulujMenu = menuBar.addAction(self.emuluj)
+        emulujMenu = menuBar.addMenu("&Emuluj")
+        emulujMenu.addAction(self.emuluj)
+        emulujMenu.addAction(self.animemuluj)
 
         autoMenu = menuBar.addAction(self.auto)
 
@@ -216,7 +213,8 @@ class Window(QMainWindow):
 
         self.zapisz = QAction("Zapisz gre", self)
 
-        self.emuluj = QAction("Emuluj", self)
+        self.emuluj = QAction("Wczytaj stan gry", self)
+        self.animemuluj = QAction("Wczytaj stan gry z odtworzeniem i animacją", self)
 
         self.auto = QAction("Autorozgrywka", self)
 
@@ -229,90 +227,97 @@ class Window(QMainWindow):
 
         self.zapisz.triggered.connect(self.fileDialogSave)
 
-        self.emuluj.triggered.connect(self.fileDialogRead)
+        self.emuluj.triggered.connect(self.wcz)
+        self.animemuluj.triggered.connect(self.wcz2)
 
         self.wyjdz.triggered.connect(self.wyjdzz)
 
-    def fileDialogRead(self):                       # odczytywanie stanu gry
+    def fileDialogRead(self, czy):                       # odczytywanie stanu gry
         dia = QFileDialog()
         filter = "XML (*.xml)"
 
         path = QFileDialog.getOpenFileName(dia, "name", "", filter)[0]
 
-        tree = ET.parse(path)
-        root = tree.getroot()
+        try:
+            tree = ET.parse(path)
+            root = tree.getroot()
 
-        seed_wie = []
-        seed_kol = []
-        seed_war = []
+            seed_wie = []
+            seed_kol = []
+            seed_war = []
 
-        k1 = root.find('gracz1')
-        poz = k1.find("seed")
-        poz1 = poz.find("klocek1")
-        seed_wie.append(poz1.find("wiersz").text)
-        seed_kol.append(poz1.find("kolumna").text)
-        seed_war.append(poz1.find("wartosc").text)
+            k1 = root.find('gracz1')
+            poz = k1.find("seed")
+            poz1 = poz.find("klocek1")
+            seed_wie.append(poz1.find("wiersz").text)
+            seed_kol.append(poz1.find("kolumna").text)
+            seed_war.append(poz1.find("wartosc").text)
 
-        poz1 = poz.find("klocek2")
-        seed_wie.append(poz1.find("wiersz").text)
-        seed_kol.append(poz1.find("kolumna").text)
-        seed_war.append(poz1.find("wartosc").text)
+            poz1 = poz.find("klocek2")
+            seed_wie.append(poz1.find("wiersz").text)
+            seed_kol.append(poz1.find("kolumna").text)
+            seed_war.append(poz1.find("wartosc").text)
 
-        ruch_str = []
-        ruch_wie = []
-        ruch_kol = []
-        ruch_war = []
+            ruch_str = []
+            ruch_wie = []
+            ruch_kol = []
+            ruch_war = []
 
-        ruchy = k1.find("ruchy")
-        for i in range(len(ruchy)):
-            ruch = ruchy.find(f"ruch{i}")
-            ruch_str.append(ruch.find("strona").text)
-            ruch_wie.append(ruch.find("wiersz").text)
-            ruch_kol.append(ruch.find("kolumna").text)
-            ruch_war.append(ruch.find("wartosc").text)
+            ruchy = k1.find("ruchy")
+            for i in range(len(ruchy)):
+                ruch = ruchy.find(f"ruch{i}")
+                ruch_str.append(ruch.find("strona").text)
+                ruch_wie.append(ruch.find("wiersz").text)
+                ruch_kol.append(ruch.find("kolumna").text)
+                ruch_war.append(ruch.find("wartosc").text)
 
-        self.undo(seed_wie, seed_kol, seed_war, ruch_str, ruch_wie, ruch_kol, ruch_war)
+            self.undo(seed_wie, seed_kol, seed_war, ruch_str, ruch_wie, ruch_kol, ruch_war, czy)
+        except:
+            pass
 
-    def undo(self, seed_wie, seed_kol, seed_war, ruch_str, ruch_wie, ruch_kol, ruch_war):
+    def wcz(self):
+        self.fileDialogRead(False)
+
+    def wcz2(self):
+        self.fileDialogRead(True)
+
+    def undo(self, seed_wie, seed_kol, seed_war, ruch_str, ruch_wie, ruch_kol, ruch_war, czy):      # odtworzenie stanu gry z pliku xml
         self.zmien(False)
-        print(ruch_str)
-        print(ruch_wie)
-        print(ruch_kol)
-        print(ruch_war)
 
         nmb = [int(seed_wie[0]), int(seed_kol[0])]
         nmb1 = [int(seed_wie[1]), int(seed_kol[1])]
 
         self.fields.clear()
         self.fields = [Field(self.pola, self, self.grid_size, nmb, int(seed_war[0]))]
-        self.dodane.append(self.fields[-1].nmb)
+        self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
         self.wartosc.append(self.fields[-1].value)
         self.fields.append(Field(self.pola, self, self.grid_size, nmb1, int(seed_war[1])))
-        self.dodane.append(self.fields[-1].nmb)
+        self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
         self.wartosc.append(self.fields[-1].value)
 
         ruch_wie = [int(i) for i in ruch_wie]
         ruch_kol = [int(i) for i in ruch_kol]
         ruch_war = [int(i) for i in ruch_war]
 
-        # time.sleep(3)
-        # for i in range(len(ruch_str)):
-        #     print([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     if ruch_str[i] == "prawo_g":
-        #         self.prawo_g([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     elif ruch_str[i] == "prawo":
-        #         self.prawo([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     elif ruch_str[i] == "prawo_d":
-        #         self.prawo_d([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     elif ruch_str[i] == "lewo_d":
-        #         self.lewo_d([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     elif ruch_str[i] == "lewo":
-        #         self.lewo([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     elif ruch_str[i] == "lewo_g":
-        #         self.lewo_g([ruch_wie[i], ruch_kol[i]], ruch_war[i])
-        #     self.view.update()
-        #     QApplication.processEvents()
-        #     time.sleep(3)
+        if czy == True:
+            time.sleep(1)
+        for i in range(len(ruch_str)):
+            if ruch_str[i] == "prawo_g":
+                self.prawo_g([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "prawo":
+                self.prawo([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "prawo_d":
+                self.prawo_d([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "lewo_d":
+                self.lewo_d([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "lewo":
+                self.lewo([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "lewo_g":
+                self.lewo_g([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            self.view.update()
+            QApplication.processEvents()
+            if czy == True:
+                time.sleep(1)
 
     def fileDialogSave(self):                       # zapisywanie stanu gry
         dia, _ = QFileDialog.getSaveFileName(self, "Save file", "history.xml", ".xml")
@@ -324,7 +329,6 @@ class Window(QMainWindow):
 
         m2 = ET.SubElement(pla1, "seed")
 
-        print("Zapisyuwanie: " + str(self.dodane[0][0]) + str(self.dodane[0][1]) + str(self.dodane[1][0]) + str(self.dodane[1][1]))
         h1 = ET.SubElement(m2, "klocek1")
         g1 = ET.SubElement(h1, "wiersz")
         g1.text = str(self.dodane[0][0])
@@ -450,10 +454,10 @@ class Window(QMainWindow):
         if czy == True:
             self.fields.clear()
             self.fields = [Field(self.pola, self, self.grid_size, [-1, -1], -1)]
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
 
         self.text_box.clear()
@@ -530,7 +534,6 @@ class Window(QMainWindow):
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo_g()
         self.akt()
         self.ruchy.append("prawo_g")
-        print("Po ruchu: " + str(self.dodane))
 
     def prawo(self, numb, war):                    # ruch prawo
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
@@ -538,7 +541,6 @@ class Window(QMainWindow):
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo()
         self.akt()
         self.ruchy.append("prawo")
-        print("Po ruchu: " + str(self.dodane))
 
     def prawo_d(self, numb, war):                  # ruch prawo dol
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
@@ -546,7 +548,6 @@ class Window(QMainWindow):
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo_d()
         self.akt()
         self.ruchy.append("prawo_d")
-        print("Po ruchu: " + str(self.dodane))
 
     def lewo_d(self, numb, war):                   # ruch lewo dol
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
@@ -554,7 +555,6 @@ class Window(QMainWindow):
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo_d()
         self.akt()
         self.ruchy.append("lewo_d")
-        print("Po ruchu: " + str(self.dodane))
 
     def lewo(self, numb, war):                     # ruch lewo
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
@@ -562,14 +562,12 @@ class Window(QMainWindow):
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo()
         self.akt()
         self.ruchy.append("lewo")
-        print("Po ruchu: " + str(self.dodane))
 
     def lewo_g(self, numb, war):                   # ruch lewo gora
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo_g()
         self.akt()
         self.ruchy.append("lewo_g")
-        print("Po ruchu: " + str(self.dodane))
 
     def create_ui(self):            # stworzenie siatki
         ui1 = Siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
@@ -667,8 +665,7 @@ class Poruszanie():                 # klasa do poruszania agentami
                 self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
             else:
                 self.fields.append(Field(self.pola, self, self.grid_size, self.numb, self.war))
-            print(copy(self.fields[-1].nmb))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
@@ -719,7 +716,7 @@ class Poruszanie():                 # klasa do poruszania agentami
                 self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
             else:
                 self.fields.append(Field(self.pola, self, self.grid_size, self.numb, self.war))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
@@ -787,7 +784,7 @@ class Poruszanie():                 # klasa do poruszania agentami
                 self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
             else:
                 self.fields.append(Field(self.pola, self, self.grid_size, self.numb, self.war))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
@@ -855,7 +852,7 @@ class Poruszanie():                 # klasa do poruszania agentami
                 self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
             else:
                 self.fields.append(Field(self.pola, self, self.grid_size, self.numb, self.war))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
@@ -908,7 +905,7 @@ class Poruszanie():                 # klasa do poruszania agentami
                 self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
             else:
                 self.fields.append(Field(self.pola, self, self.grid_size, self.numb, self.war))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
@@ -980,7 +977,7 @@ class Poruszanie():                 # klasa do poruszania agentami
                 self.fields.append(Field(self.pola, self, self.grid_size, [-1, -1], -1))
             else:
                 self.fields.append(Field(self.pola, self, self.grid_size, self.numb, self.war))
-            self.dodane.append(self.fields[-1].nmb)
+            self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
             self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()

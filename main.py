@@ -68,6 +68,8 @@ class Window(QMainWindow):
         self.buttonl = QPushButton(self)
         self.buttonlg = QPushButton(self)
 
+        self.cofnij = QPushButton(self)
+
         self.text_box = QTextEdit(self)             # stworzenie textboxa
 
         self.label1 = QLabel(self)                  # stworzenie labeli do wypisywania aktualnych wynikow
@@ -145,6 +147,13 @@ class Window(QMainWindow):
         self.buttonlg.move(5, self.wysokosc_sceny * 1.02)
         self.buttonlg.setStyleSheet("background-color: #009999")
         self.buttonlg.clicked.connect(self.lewo_gg)
+
+        self.cofnij.setFixedHeight(70)
+        self.cofnij.setFixedWidth(100)
+        self.cofnij.setStyleSheet("background-color: red")
+        self.cofnij.move(self.szerokosc_sceny + 40, self.wysokosc_sceny - 100)
+        self.cofnij.setVisible(False)
+        self.cofnij.clicked.connect(self.undo2)
 
         self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 250, 150)
         self.text_box.setReadOnly(True)
@@ -318,6 +327,42 @@ class Window(QMainWindow):
             QApplication.processEvents()
             if czy == True:
                 time.sleep(1)
+        self.cofnij.setVisible(True)
+
+    def undo2(self, seed_wie, seed_kol, seed_war, ruch_str, ruch_wie, ruch_kol, ruch_war):      # odtworzenie stanu gry z pliku xml
+        self.zmien(False)
+
+        nmb = [int(seed_wie[0]), int(seed_kol[0])]
+        nmb1 = [int(seed_wie[1]), int(seed_kol[1])]
+
+        self.fields.clear()
+        self.fields = [Field(self.pola, self, self.grid_size, nmb, int(seed_war[0]))]
+        self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
+        self.wartosc.append(self.fields[-1].value)
+        self.fields.append(Field(self.pola, self, self.grid_size, nmb1, int(seed_war[1])))
+        self.dodane.append([self.fields[-1].nmb[0], self.fields[-1].nmb[1]])
+        self.wartosc.append(self.fields[-1].value)
+
+        ruch_wie = [int(i) for i in ruch_wie]
+        ruch_kol = [int(i) for i in ruch_kol]
+        ruch_war = [int(i) for i in ruch_war]
+
+        for i in range(len(ruch_str) - 1):
+            if ruch_str[i] == "prawo_g":
+                self.prawo_g([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "prawo":
+                self.prawo([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "prawo_d":
+                self.prawo_d([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "lewo_d":
+                self.lewo_d([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "lewo":
+                self.lewo([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            elif ruch_str[i] == "lewo_g":
+                self.lewo_g([ruch_wie[i], ruch_kol[i]], ruch_war[i])
+            self.view.update()
+            QApplication.processEvents()
+        self.cofnij.setVisible(False)
 
     def fileDialogSave(self):                       # zapisywanie stanu gry
         dia, _ = QFileDialog.getSaveFileName(self, "Save file", "history.xml", ".xml")
@@ -419,6 +464,9 @@ class Window(QMainWindow):
         self.buttonld.move(5, self.wysokosc_sceny * 1.02 + 100)
         self.buttonl.move(5, self.wysokosc_sceny * 1.02 + 50)
         self.buttonlg.move(5, self.wysokosc_sceny * 1.02)
+
+        self.cofnij.move(self.szerokosc_sceny + 40, self.wysokosc_sceny - 100)
+        self.cofnij.setVisible(False)
 
         self.text_box.setGeometry(130, self.wysokosc_sceny * 1.02, 250, 150)
 
@@ -529,6 +577,7 @@ class Window(QMainWindow):
         self.lewo_g(numb, -1)
 
     def prawo_g(self, numb, war):                  # ruch prawo gora
+        self.cofnij.setVisible(False)
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo_g()
@@ -536,6 +585,7 @@ class Window(QMainWindow):
         self.ruchy.append("prawo_g")
 
     def prawo(self, numb, war):                    # ruch prawo
+        self.cofnij.setVisible(False)
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo()
@@ -543,6 +593,7 @@ class Window(QMainWindow):
         self.ruchy.append("prawo")
 
     def prawo_d(self, numb, war):                  # ruch prawo dol
+        self.cofnij.setVisible(False)
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo_d()
@@ -550,6 +601,7 @@ class Window(QMainWindow):
         self.ruchy.append("prawo_d")
 
     def lewo_d(self, numb, war):                   # ruch lewo dol
+        self.cofnij.setVisible(False)
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo_d()
@@ -557,6 +609,7 @@ class Window(QMainWindow):
         self.ruchy.append("lewo_d")
 
     def lewo(self, numb, war):                     # ruch lewo
+        self.cofnij.setVisible(False)
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo()
@@ -564,6 +617,7 @@ class Window(QMainWindow):
         self.ruchy.append("lewo")
 
     def lewo_g(self, numb, war):                   # ruch lewo gora
+        self.cofnij.setVisible(False)
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik, self.dodane, self.wartosc, numb, war)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo_g()
         self.akt()

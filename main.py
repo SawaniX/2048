@@ -5,15 +5,67 @@ import math
 import copy
 import random
 import os
+import socket
+import threading
 from datetime import datetime
 from PySide2.QtWidgets import *
-from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont, QPalette
+from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont, QPalette, QImage, QColor
 from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal, QStringListModel
+
+class Server(threading.Thread):
+    def __init__(self,
+                 group=None,
+                 target=None,
+                 name=None,
+                 *,
+                 daemon=None):
+        super().__init__(group=group, target=target, name=name, daemon=daemon)
+
+    def run(self):
+        ip = '127.0.0.1'
+        port = 10000
+
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind((ip, port))
+        server.listen()
+
+        klienci = []
+        ids = []
+        print("ELO")
+
+        def odbierz():
+            while True:
+                klient, address = server.accept()
+                print("Dołączono z {}".format(str(address)))
+
+                id = len(ids)
+                ids.append(id)
+                klienci.append(klient)
+
+                print("Dołączył {}".format(id))
+
+        odbierz()
+#
+#
+class Client(threading.Thread):
+    def __init__(self,
+                 group=None,
+                 target=None,
+                 name=None,
+                 *,
+                 daemon=None):
+        super().__init__(group=group, target=target, name=name, daemon=daemon)
+
+    def run(self):
+        klient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        klient.connect(('127.0.0.1', 10000))
+        print("ELO222")
 
 
 # klasa posiadajaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
-class plansza():
+class Plansza():
     count = 0
+
     def __init__(self, x0, x1, x2, x3, x4, x5, y0, y1, y2, y3, y4, y5, kolumna, nr_w_kol):
         self.x0 = x0
         self.x1 = x1
@@ -30,10 +82,10 @@ class plansza():
         self.kolumna = kolumna
         self.nr_w_kol = nr_w_kol
         self.zajety = False
-        self.count = plansza.count
+        self.count = Plansza.count
         self.srodek_x = (self.x0 + self.x3) / 2
         self.srodek_y = (self.y0 + self.y3) / 2
-        plansza.count += 1
+        Plansza.count += 1
 
 
 # glowne okno gry wraz z plansza
@@ -84,8 +136,8 @@ class Window(QMainWindow):
 
         self.properties()               # ustawienie wlasciwosci elementow programu
 
-        self.fields = [field(self.pola, self, self.grid_size)]
-        self.fields.append(field(self.pola, self, self.grid_size))
+        self.fields = [Field(self.pola, self, self.grid_size)]
+        self.fields.append(Field(self.pola, self, self.grid_size))
 
         self.show()
 
@@ -166,7 +218,7 @@ class Window(QMainWindow):
         self.view2.setAlignment(Qt.AlignTop and Qt.AlignLeft)
         self.view2.setGeometry(500, 20, self.wysokosc_sceny, self.szerokosc_sceny)
 
-        sys.stdout = Stream()
+        sys.stdout = Stream()                       # czesc przekierowania konsoli do qtextedit
         sys.stdout.box.connect(self.onUpdateText)
 
     def _createMenuBar(self):
@@ -319,8 +371,8 @@ class Window(QMainWindow):
         self.view2.setGeometry(self.szerokosc_sceny * 3-(self.szerokosc_sceny+10), 20, self.wysokosc_sceny, self.szerokosc_sceny)
 
         self.fields.clear()
-        self.fields = [field(self.pola, self, self.grid_size)]
-        self.fields.append(field(self.pola, self, self.grid_size))
+        self.fields = [Field(self.pola, self, self.grid_size)]
+        self.fields.append(Field(self.pola, self, self.grid_size))
 
         self.text_box.clear()
 
@@ -367,45 +419,45 @@ class Window(QMainWindow):
         return super(Window, self).eventFilter(source, event)
 
     def prawo_g(self):                  # ruch prawo gora
-        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo_g()
         self.akt()
 
     def prawo(self):                    # ruch prawo
-        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo()
         self.akt()
 
     def prawo_d(self):                  # ruch prawo dol
-        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo_d()
         self.akt()
 
     def lewo_d(self):                   # ruch lewo dol
-        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo_d()
         self.akt()
 
     def lewo(self):                     # ruch lewo
-        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
                          self.text_box, self.wynik)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo()
         self.akt()
 
     def lewo_g(self):                   # ruch lewo gora
-        lew = poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik)
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik)
         self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo_g()
         self.akt()
 
     def create_ui(self):            # stworzenie siatki
-        ui1 = siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
+        ui1 = Siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
         self.scene, self.pola, self.ilpol = ui1.stworz_plansze()
 
-        ui2 = siatka(self.grid_size, self.var, self.scene2, self.pola2, self.il_pol2)
+        ui2 = Siatka(self.grid_size, self.var, self.scene2, self.pola2, self.il_pol2)
         self.scene2, self.pola2, self.ilpol2 = ui2.stworz_plansze()
 
     def add_pol(self, item):                        # dodanie pola
@@ -430,7 +482,7 @@ class Window(QMainWindow):
         sys.stdout = sys.__stdout__
 
 
-class poruszanie():
+class Poruszanie():                 # klasa do poruszania agentami
     def __init__(self, grid_size, pola, fields, scene, view, il_pol, var, text_box, wynik):
         self.grid_size = grid_size
         self.pola = pola
@@ -489,7 +541,7 @@ class poruszanie():
             czy_zmienil = self.fields[sort_y[i][1]].zmien_pozycje_pg()
 
         if zm == True:
-            self.fields.append(field(self.pola, self, self.grid_size))
+            self.fields.append(Field(self.pola, self, self.grid_size))
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
@@ -532,7 +584,7 @@ class poruszanie():
             czy_zmienil = self.fields[sort_x[i][1]].zmien_pozycje_p()
 
         if zm == True:
-            self.fields.append(field(self.pola, self, self.grid_size))
+            self.fields.append(Field(self.pola, self, self.grid_size))
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
@@ -592,7 +644,7 @@ class poruszanie():
             czy_zmienil = self.fields[sort_y[i][1]].zmien_pozycje_pd()
 
         if zm == True:
-            self.fields.append(field(self.pola, self, self.grid_size))
+            self.fields.append(Field(self.pola, self, self.grid_size))
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
@@ -635,7 +687,6 @@ class poruszanie():
                         self.wynik = self.wynik + wart
                         dele.append(j)
                         zm = True
-                        print("TU2")
         if len(dele) > 0:
             fi = []
             for i in range(len(self.fields)):
@@ -653,7 +704,7 @@ class poruszanie():
             czy_zmienil = self.fields[sort_y[i][1]].zmien_pozycje_ld()
 
         if zm == True:
-            self.fields.append(field(self.pola, self, self.grid_size))
+            self.fields.append(Field(self.pola, self, self.grid_size))
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
@@ -698,7 +749,7 @@ class poruszanie():
             czy_zmienil = self.fields[sort_x[i][1]].zmien_pozycje_l()
 
         if zm == True:
-            self.fields.append(field(self.pola, self, self.grid_size))
+            self.fields.append(Field(self.pola, self, self.grid_size))
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
@@ -762,7 +813,7 @@ class poruszanie():
             czy_zmienil = self.fields[sort_y[i][1]].zmien_pozycje_lg()
 
         if zm == True:
-            self.fields.append(field(self.pola, self, self.grid_size))
+            self.fields.append(Field(self.pola, self, self.grid_size))
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
@@ -842,7 +893,7 @@ class poruszanie():
         return sort_x
 
 
-class siatka():
+class Siatka():         # klasa tworzaca siatke
     def __init__(self, grid_size, var, scena, pola, il_pol):
         self.grid_size = grid_size
         self.var = var
@@ -879,7 +930,7 @@ class siatka():
                 self.scene.addLine(x[3], y[3], x[4], y[4], blackPen)
                 self.scene.addLine(x[4], y[4], x[5], y[5], blackPen)
                 self.scene.addLine(x[5], y[5], x[0], y[0], blackPen)
-                lista.append(plansza(x[0], x[1], x[2], x[3], x[4], x[5], y[0], y[1], y[2], y[3], y[4], y[5], i, j))
+                lista.append(Plansza(x[0], x[1], x[2], x[3], x[4], x[5], y[0], y[1], y[2], y[3], y[4], y[5], i, j))
                 self.il_pol += 1
             self.pola.append(lista)
 
@@ -890,7 +941,7 @@ class siatka():
         return self.scene, self.pola, self.il_pol
 
 
-class Stream(QObject):
+class Stream(QObject):              # klasa do przenoszenia konsoli do qtextedit
     box = Signal(str)
     konsola = sys.stdout
 
@@ -902,8 +953,8 @@ class Stream(QObject):
         pass
 
 
-# klasa do klockow
-class field(QGraphicsItem):
+# klasa tworzaca pojedynczego agenta do jego poruszania
+class Field(QGraphicsItem):
     def __init__(self, pola, window, grid_size):
         super(QGraphicsItem, self).__init__()
         self.pola = pola
@@ -913,7 +964,7 @@ class field(QGraphicsItem):
         self.nmb = self.rand_field()
         self.fld, self.txt = self.narysuj_klocek()
 
-    def rand_field(self):
+    def rand_field(self):                   # wylosowanie pozycji nowego agenta i jego wartosci (90% - wartosc:2, 10%-4)
         free = free_fields(self.pola)
         leng = len(free)
         ran = random.randint(0, leng-1)
@@ -1106,9 +1157,8 @@ class field(QGraphicsItem):
                 zmienil = True
         return zmienil
 
-    def upd_text(self):
+    def upd_text(self):                     # metoda aktualizujaca wartosc klocka
         self.txt.setPlainText(str(self.value))
-        #self.window.akt(self.value)
         if self.value == 16:
             self.txt.moveBy(-4, 0)
         elif self.value == 128:
@@ -1127,8 +1177,21 @@ def free_fields(pola):
 
 
 def main():
-    app = QApplication(sys.argv)
-    window = Window(3)
+    try:
+        cli = Client()
+        cli.run()
+
+        app = QApplication(sys.argv)
+        window = Window(3)
+    except:
+        ser = Server()
+        ser.start()
+
+        cli = Client()
+        cli.start()
+
+        app = QApplication(sys.argv)
+        window = Window(3)
 
     sys.exit(app.exec_())
 

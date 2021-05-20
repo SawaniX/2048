@@ -11,55 +11,8 @@ from datetime import datetime
 from PySide2.QtWidgets import *
 from PySide2.QtGui import QPen, QPainter, QPolygonF, QBrush, QTextCursor, QFont, QPalette, QImage, QColor
 from PySide2.QtCore import Qt, QPointF, QPropertyAnimation, QEvent, QRectF, QObject, Signal, QStringListModel
-
-class Server(threading.Thread):
-    def __init__(self,
-                 group=None,
-                 target=None,
-                 name=None,
-                 *,
-                 daemon=None):
-        super().__init__(group=group, target=target, name=name, daemon=daemon)
-
-    def run(self):
-        ip = '127.0.0.1'
-        port = 10000
-
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind((ip, port))
-        server.listen()
-
-        klienci = []
-        ids = []
-        print("ELO")
-
-        def odbierz():
-            while True:
-                klient, address = server.accept()
-                print("Dołączono z {}".format(str(address)))
-
-                id = len(ids)
-                ids.append(id)
-                klienci.append(klient)
-
-                print("Dołączył {}".format(id))
-
-        odbierz()
-#
-#
-class Client(threading.Thread):
-    def __init__(self,
-                 group=None,
-                 target=None,
-                 name=None,
-                 *,
-                 daemon=None):
-        super().__init__(group=group, target=target, name=name, daemon=daemon)
-
-    def run(self):
-        klient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        klient.connect(('127.0.0.1', 10000))
-        print("ELO222")
+from xml.dom import minidom
+import xml.etree.ElementTree as ET
 
 
 # klasa posiadajaca dane wierzcholkow kazdego pola oraz nr kolumny oraz pozycje w kolumnie
@@ -103,6 +56,9 @@ class Window(QMainWindow):
         self.wynik = 0                      # aktualny wynik gracza
         self.szerokosc_sceny = self.var * ((85.98076211353315 + math.sqrt(3) / 2 * 60) - (34.01923788646684 + math.sqrt(3) / 2 * 60))
         self.wysokosc_sceny = self.var * ((115.98076211353315 + math.sqrt(3) / 4 + 43) - (60 + math.sqrt(3) / 4 + 43))
+        self.ruchy = []
+        self.dodane = []
+        self.wartosc = []
 
         self.setWindowTitle("Hexagonal 2048, enjoy!")
 
@@ -137,7 +93,11 @@ class Window(QMainWindow):
         self.properties()               # ustawienie wlasciwosci elementow programu
 
         self.fields = [Field(self.pola, self, self.grid_size)]
+        self.dodane.append(self.fields[-1].nmb)
+        self.wartosc.append(self.fields[-1].value)
         self.fields.append(Field(self.pola, self, self.grid_size))
+        self.dodane.append(self.fields[-1].nmb)
+        self.wartosc.append(self.fields[-1].value)
 
         self.show()
 
@@ -272,19 +232,60 @@ class Window(QMainWindow):
 
     def fileDialogRead(self):                       # odczytywanie stanu gry
         dia = QFileDialog()
-        dia.setNameFilter("XML (*.xml)");
-        dia.exec();
+        filter = "XML (*.xml)"
+
+        path = QFileDialog.getOpenFileName(dia, "name", "", filter)[0]
+
+        tree = ET.parse(path)
+        root = tree.getroot()
+
+
+        #dia.exec()
 
     def fileDialogSave(self):                       # zapisywanie stanu gry
-        now = datetime.now()
-        time = now.strftime("%H_%M_%S")
+        dia, _ = QFileDialog.getSaveFileName(self, "Save file", "history.xml", ".xml")
 
-        dia, _ = QFileDialog.getSaveFileName(self, "Save file", "2048_Save_"+time, ".xml")
+        root = ET.Element("Save")
 
-        if dia:
-            with open(dia, "w") as file:
-                file.write("ELO")
-                file.close()
+        pla1 = ET.Element("gracz1")
+        root.append(pla1)
+
+        m2 = ET.SubElement(pla1, "seed")
+
+        h1 = ET.SubElement(m2, "klocek1")
+        g1 = ET.SubElement(h1, "wiersz")
+        g1.text = str(self.dodane[0][0])
+        g2 = ET.SubElement(h1, "kolumna")
+        g2.text = str(self.dodane[0][1])
+        g3 = ET.SubElement(h1, "wartosc")
+        g3.text = str(self.wartosc[0])
+
+        h2 = ET.SubElement(m2, "klocek2")
+        t1 = ET.SubElement(h2, "wiersz")
+        t1.text = str(self.dodane[1][0])
+        t2 = ET.SubElement(h2, "kolumna")
+        t2.text = str(self.dodane[1][1])
+        t3 = ET.SubElement(h2, "wartosc")
+        t3.text = str(self.wartosc[1])
+
+        m1 = ET.SubElement(pla1, "ruchy")
+
+        for i in range(len(self.ruchy)):
+            b1 = ET.SubElement(m1, f"ruch{i}")
+            strona = ET.SubElement(b1, f"strona{i}")
+            strona.text = self.ruchy[i]
+            wiersz = ET.SubElement(b1, f"wiersz{i}")
+            wiersz.text = str(self.dodane[i+2][0])
+            kolumna = ET.SubElement(b1, f"kolumna{i}")
+            kolumna.text = str(self.dodane[i + 2][1])
+            wartosc = ET.SubElement(b1, f"wartosc{i}")
+            wartosc.text = str(self.wartosc[i+2])
+
+        tree = ET.ElementTree(root)
+        try:
+            tree.write(dia)
+        except:
+            pass
 
     def dialogg(self):                  # DialogBox do zmiany rozmiaru planszy
         d = QDialog()
@@ -329,6 +330,9 @@ class Window(QMainWindow):
         self.szerokosc_sceny = self.var * (
                 (85.98076211353315 + math.sqrt(3) / 2 * 60) - (34.01923788646684 + math.sqrt(3) / 2 * 60))
         self.wysokosc_sceny = self.var * ((115.98076211353315 + math.sqrt(3) / 4 + 43) - (60 + math.sqrt(3) / 4 + 43))
+        self.ruchy.clear()
+        self.dodane.clear()
+        self.wartosc.clear()
 
         self.setGeometry(500, 200, self.szerokosc_sceny * 3, self.wysokosc_sceny+200)
 
@@ -372,7 +376,11 @@ class Window(QMainWindow):
 
         self.fields.clear()
         self.fields = [Field(self.pola, self, self.grid_size)]
+        self.dodane.append(self.fields[-1].nmb)
+        self.wartosc.append(self.fields[-1].value)
         self.fields.append(Field(self.pola, self, self.grid_size))
+        self.dodane.append(self.fields[-1].nmb)
+        self.wartosc.append(self.fields[-1].value)
 
         self.text_box.clear()
 
@@ -420,45 +428,51 @@ class Window(QMainWindow):
 
     def prawo_g(self):                  # ruch prawo gora
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
-                         self.text_box, self.wynik)
-        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo_g()
+                         self.text_box, self.wynik, self.dodane, self.wartosc)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo_g()
         self.akt()
+        self.ruchy.append("prawo_g")
 
     def prawo(self):                    # ruch prawo
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
-                         self.text_box, self.wynik)
-        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo()
+                         self.text_box, self.wynik, self.dodane, self.wartosc)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo()
         self.akt()
+        self.ruchy.append("prawo")
 
     def prawo_d(self):                  # ruch prawo dol
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
-                         self.text_box, self.wynik)
-        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.prawo_d()
+                         self.text_box, self.wynik, self.dodane, self.wartosc)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.prawo_d()
         self.akt()
+        self.ruchy.append("prawo_d")
 
     def lewo_d(self):                   # ruch lewo dol
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
-                         self.text_box, self.wynik)
-        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo_d()
+                         self.text_box, self.wynik, self.dodane, self.wartosc)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo_d()
         self.akt()
+        self.ruchy.append("lewo_d")
 
     def lewo(self):                     # ruch lewo
         lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var,
-                         self.text_box, self.wynik)
-        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo()
+                         self.text_box, self.wynik, self.dodane, self.wartosc)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo()
         self.akt()
+        self.ruchy.append("lewo")
 
     def lewo_g(self):                   # ruch lewo gora
-        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik)
-        self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik = lew.lewo_g()
+        lew = Poruszanie(self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik, self.dodane, self.wartosc)
+        self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc = lew.lewo_g()
         self.akt()
+        self.ruchy.append("lewo_g")
 
     def create_ui(self):            # stworzenie siatki
         ui1 = Siatka(self.grid_size, self.var, self.scene, self.pola, self.il_pol)
-        self.scene, self.pola, self.ilpol = ui1.stworz_plansze()
+        self.scene, self.pola, self.il_pol = ui1.stworz_plansze()
 
         ui2 = Siatka(self.grid_size, self.var, self.scene2, self.pola2, self.il_pol2)
-        self.scene2, self.pola2, self.ilpol2 = ui2.stworz_plansze()
+        self.scene2, self.pola2, self.il_pol2 = ui2.stworz_plansze()
 
     def add_pol(self, item):                        # dodanie pola
         self.scene.addItem(item)
@@ -483,7 +497,7 @@ class Window(QMainWindow):
 
 
 class Poruszanie():                 # klasa do poruszania agentami
-    def __init__(self, grid_size, pola, fields, scene, view, il_pol, var, text_box, wynik):
+    def __init__(self, grid_size, pola, fields, scene, view, il_pol, var, text_box, wynik, dodane, wartosc):
         self.grid_size = grid_size
         self.pola = pola
         self.fields = fields
@@ -493,6 +507,8 @@ class Poruszanie():                 # klasa do poruszania agentami
         self.var = var
         self.text_box = text_box
         self.wynik = wynik
+        self.dodane = dodane
+        self.wartosc = wartosc
 
     def prawo_g(self):
         sort_y = self.sort_y()
@@ -542,12 +558,14 @@ class Poruszanie():                 # klasa do poruszania agentami
 
         if zm == True:
             self.fields.append(Field(self.pola, self, self.grid_size))
+            self.dodane.append(self.fields[-1].nmb)
+            self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc
 
     def prawo(self):
         sort_x = self.sort_x_re()
@@ -585,12 +603,14 @@ class Poruszanie():                 # klasa do poruszania agentami
 
         if zm == True:
             self.fields.append(Field(self.pola, self, self.grid_size))
+            self.dodane.append(self.fields[-1].nmb)
+            self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc
 
     def prawo_d(self):
         sort_y = self.sort_y_re()
@@ -645,12 +665,14 @@ class Poruszanie():                 # klasa do poruszania agentami
 
         if zm == True:
             self.fields.append(Field(self.pola, self, self.grid_size))
+            self.dodane.append(self.fields[-1].nmb)
+            self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc
 
     def lewo_d(self):
         sort_y = self.sort_y_re()
@@ -705,12 +727,14 @@ class Poruszanie():                 # klasa do poruszania agentami
 
         if zm == True:
             self.fields.append(Field(self.pola, self, self.grid_size))
+            self.dodane.append(self.fields[-1].nmb)
+            self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc
 
     def lewo(self):
         sort_x = self.sort_x()
@@ -750,12 +774,14 @@ class Poruszanie():                 # klasa do poruszania agentami
 
         if zm == True:
             self.fields.append(Field(self.pola, self, self.grid_size))
+            self.dodane.append(self.fields[-1].nmb)
+            self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc
 
     def lewo_g(self):
         sort_y = self.sort_y()
@@ -814,12 +840,14 @@ class Poruszanie():                 # klasa do poruszania agentami
 
         if zm == True:
             self.fields.append(Field(self.pola, self, self.grid_size))
+            self.dodane.append(self.fields[-1].nmb)
+            self.wartosc.append(self.fields[-1].value)
             if len(self.fields) == self.il_pol:
                 self.scene.clear()
                 self.scene.addText("KONIEC GRY")
                 self.view.update()
         self.wypisz()
-        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.il_pol, self.var, self.text_box, self.wynik
+        return self.grid_size, self.pola, self.fields, self.scene, self.view, self.var, self.text_box, self.wynik, self.dodane, self.wartosc
 
     def wypisz(self):
         os.system("")
@@ -953,7 +981,7 @@ class Stream(QObject):              # klasa do przenoszenia konsoli do qtextedit
         pass
 
 
-# klasa tworzaca pojedynczego agenta do jego poruszania
+# klasa tworzaca pojedynczego agenta oraz skuzaca do jego poruszania
 class Field(QGraphicsItem):
     def __init__(self, pola, window, grid_size):
         super(QGraphicsItem, self).__init__()
@@ -1177,21 +1205,8 @@ def free_fields(pola):
 
 
 def main():
-    try:
-        cli = Client()
-        cli.run()
-
-        app = QApplication(sys.argv)
-        window = Window(3)
-    except:
-        ser = Server()
-        ser.start()
-
-        cli = Client()
-        cli.start()
-
-        app = QApplication(sys.argv)
-        window = Window(3)
+    app = QApplication(sys.argv)
+    window = Window(3)
 
     sys.exit(app.exec_())
 

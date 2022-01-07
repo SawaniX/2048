@@ -1,7 +1,3 @@
-# Tomasz Walburg 176050, AiR KSD
-# zrobione wszystko oprocz dziedziczenia po QGraphicsItem, wyswietlenia grafiki z zasobow qrc oraz zapisu konfiguracji
-# w pliku .json
-
 import sys
 import math
 import random

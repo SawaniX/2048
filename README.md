@@ -2,7 +2,7 @@
 ***
 ### Functions:
 
-The game has basics functions like:
+The game has basics functions:
 - control by keyboard
 - control by buttons in the GUI
 - save game

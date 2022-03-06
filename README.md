@@ -1,4 +1,4 @@
 ## 2048 game 
 ***
-### Game:
+![alt text](https://i.imgur.com/r0haDXR.png)
 
